@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/jake/Desktop/ca_lab1/MIPS.cpp
+iostream
+-
+string
+-
+vector
+-
+bitset
+-
+fstream
+-
+

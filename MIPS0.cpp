@@ -53,7 +53,7 @@ public:
     void OutputRF()
     {
         ofstream rfout;
-        rfout.open("/home/jake/Desktop/ca_lab1/RFresult.txt",std::ios_base::app);
+        rfout.open("/home/jake/Desktop/ca_lab1/RFresult0.txt",std::ios_base::app);
         if (rfout.is_open())
         {
             rfout<<"A state of RF:"<<endl;
@@ -84,21 +84,27 @@ public:
         // implement the ALU operations by you.
         int aluop = (int) ALUOP.to_ulong();
 
-        if (aluop == ADDU)
+        switch (aluop) {
+            case ADDU:
+
                 ALUresult = bitset<32> (oprand1.to_ulong() + oprand2.to_ulong()); // BE CAREFUL, might not work
-        else if (aluop == SUBU)
+
+            case SUBU:
                 ALUresult = bitset<32> (oprand1.to_ulong() - oprand2.to_ulong()); // BE CAREFUL, might not work
-        else if (aluop == AND)
+
+            case AND:
                 ALUresult = oprand1.operator&=(oprand2);
-        else if (aluop == OR)
+
+            case OR:
                 ALUresult = oprand1.operator|=(oprand2);
-        else if (aluop == NOR) {
-            ALUresult = oprand1.operator|=(oprand2);
-            ALUresult = ALUresult.operator~();
+
+            case NOR:
+                ALUresult = oprand1.operator|=(oprand2);
+                ALUresult = ALUresult.operator~();
+
+            default:
+                ALUresult = NULL;
         }
-        else ALUresult = NULL;
-
-
         return ALUresult;
     }
 };
@@ -202,7 +208,7 @@ public:
     void OutputDataMem()
     {
         ofstream dmemout;
-        dmemout.open("/home/jake/Desktop/ca_lab1/dmemresult.txt");
+        dmemout.open("/home/jake/Desktop/ca_lab1/my_dmemresult0.txt");
         if (dmemout.is_open())
         {
             for (int j = 0; j< 1000; j++)
@@ -225,7 +231,7 @@ void dumpResults(bitset<32> pc, bitset<5> WrRFAdd, bitset<32> WrRFData, bitset<1
 {
     ofstream fileout;
 
-    fileout.open("/home/jake/Desktop/ca_lab1/Results.txt",std::ios_base::app);
+    fileout.open("/home/jake/Desktop/ca_lab1/my_Results0.txt",std::ios_base::app);
     if (fileout.is_open())
     {
         fileout <<pc<<' '<<WrRFAdd<<' '<<WrRFData<<' '<<RFWrEn<<' '<<WrMemAdd<<' '<<WrMemData<<' '<<WrMemEn << endl;
@@ -243,10 +249,8 @@ int main()
     INSMem myInsMem;
     DataMem myDataMem;
 
-    bitset<32> pc_plus_4=0;
     bitset<32> next_pc=0;
-    bitset<32> instruction(0);
-    string instruction_str;
+    bitset<32> instruction;
     bitset<32> WrtData; // for RF
     bitset<32> WriteData; // for Datamem
     bitset<32> ReadData;
@@ -257,33 +261,25 @@ int main()
     bitset<1> isBranch;
     bitset<1> isJ_Type;
 
-    bitset<1> isLoad;
-    bitset<1> isStore;
-    bitset<1> isI_Type;
+    bitset<1> isLoad(0);
+    bitset<1> isStore(0);
+    bitset<1> isI_Type(0);
     bitset<3> ALUOP;
-    bitset<1> WrtEnable; // re-set to 0 only when J-Type and I-Store ... (may be wrong)
+    bitset<1> WrtEnable(0); // re-set to 0 only when J-Type and I-Store ... (may be wrong)
 
+    int counter_for_debuging = 0;
+
+    instruction = myInsMem.ReadMemory(pc);
+    string instruction_str = instruction.to_string();
     while (1) //each loop body corresponds to one clock cycle.
     {
-        pc = next_pc;
-        instruction = myInsMem.ReadMemory(pc);
-        instruction_str = instruction.to_string();
+
 
         if (myInsMem.Instruction.all()){
             printf("The program just halted.\n");
-            cout << "Current pc is " << pc.to_ulong() << endl;
+            cout << "Current pc is " << pc << endl;
             break;
         }  // halt
-
-        // Stage 3: Data Mem load and Write back
-        bitset<1> readmem = isLoad;
-        bitset<1> writemem = isStore;
-        ReadData = myDataMem.MemoryAccess(Address, WriteData, readmem, writemem);
-        if (writemem.all()) {
-            printf("\n");
-            cout << "Write to data with address " << Address.to_ulong() << endl;
-            cout << "The data is " << WriteData.to_ulong() << endl;
-        }
 
         // Stage 2: Instruction Decode/RF read and Execution
         bitset<6> Opcode (instruction_str.substr(0,6));
@@ -293,10 +289,7 @@ int main()
         if (opcode == 0x23) isLoad.set();
         else isLoad.reset();
 
-        if (opcode == 0x2B){
-            isStore.set();
-            printf("isStore set here!");
-        }
+        if (opcode == 0x2B) isStore.set();
         else isStore.reset();
 
         if (opcode == 0x23 || opcode == 0x2B || opcode == 0x09 || opcode == 0x04)
@@ -348,28 +341,36 @@ int main()
         ALUresult = myALU.ALUOperation(ALUOP, oprand1, oprand2);
         Address = ALUresult;
 
-        if (isStore.all()) {
-            cout << "ALUOP is " << ALUOP.to_string() << endl;
-            cout << "oprand1 is " << oprand1.to_string() << endl;
-            cout << "oprand2 is " << oprand2.to_string() << endl;
-            cout << "ALUresult is " << ALUresult << endl;
-        }
+        // Stage 3: Data Mem load and Write back
+        bitset<1> readmem = isLoad;
+        bitset<1> writemem = isStore;
+        ReadData = myDataMem.MemoryAccess(Address, WriteData, readmem, writemem);
 
         // Stage 1: Instruction Fetch
-        pc_plus_4 = bitset<32> (pc.to_ulong() + 4);
+        next_pc = bitset<32> (pc.to_ulong() + 4);
         if (isJ_Type.all()) {
-            next_pc = bitset<32>(pc_plus_4.to_string().substr(0,4) + instruction_str.substr(6,26) + "00");
+            pc = bitset<32>(next_pc.to_string().substr(0,4) + instruction_str.substr(6,26) + "00");
+            printf("%s\n\n", "We have a jump here!!");
+            cout << "Show the 26-bits address in binary: " << instruction_str.substr(6,26) << endl;
+            cout << "Current pc (for jump) is " << pc.to_ulong() << endl;
+            cout << "The opcode is: " << Opcode << endl;
+            cout << "next_pc.to_string().substr(0,4)  " << next_pc.to_string().substr(0,4) << endl;
+            cout << "instruction_str.substr(6,26)  " << instruction_str.substr(6,26) << endl;
+            printf("%s\n\n", "End with jump debuging!!");
+
         }
         else if (isBranch.all()){
-            if (isEq.all())
-                next_pc = bitset<32>(pc_plus_4.to_ulong() + bitset<32>(signExtend.to_string().substr(2,30) + "00").to_ulong());
+            if (isEq.all()) 
+                pc = bitset<32>(next_pc.to_ulong() + bitset<32>(signExtend.to_string().substr(2,30) + "00").to_ulong());
             }
-        else next_pc = pc_plus_4;
+        else pc = next_pc;
 
+        instruction = myInsMem.ReadMemory(pc);
+        instruction_str = instruction.to_string();
         // At the end of each cycle, fill in the corresponding data into "dumpResults" function to output files.
         // The first dumped pc value should be 0.
         // void dumpResults(bitset<32> pc, bitset<5> WrRFAdd, bitset<32> WrRFData, bitset<1> RFWrEn, bitset<32> WrMemAdd, bitset<32> WrMemData, bitset<1> WrMemEn)
-        cout << "Current pc is " << pc.to_ulong() << endl;
+        cout << "Current pc is " << pc.to_ulong()-4 << endl;
         cout << "Current instruction is " << myInsMem.Instruction.to_string() << endl;
         dumpResults(pc, WrtReg, WrtData, WrtEnable, Address, WriteData, writemem);
     }

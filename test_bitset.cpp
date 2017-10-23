@@ -150,32 +150,10 @@ int main()
     if (set8_1 == bitset<8>("11111111") )
         cout << "Yep." << endl;
 
+    bitset<32> bitset32_1 = bitset<32> ("00000000000000000000000000000000");
+    bitset<32> bitset32_2 = bitset<32> ("00000000000000000000000000001000");
+    result32 = bitset<32>(bitset32_1.to_ulong() + bitset32_2.to_ulong());
+    cout << result32 << endl;
 
-
-    // test dumpResults
-
-    bitset<32> pc=0;
-
-    bitset<32> next_pc=0;
-    bitset<32> instruction;
-    string instruction_str = instruction.to_string();
-    bitset<32> WrtData; // for RF
-    bitset<32> WriteData; // for Datamem
-    bitset<32> ReadData;
-    bitset<32> Address;
-    bitset<32> ALUresult;
-
-
-    bitset<1> isEq;
-    bitset<1> isBranch;
-    bitset<1> isJ_Type;
-    bitset<5> WrtReg;
-    bitset<1> writemem;
-    bitset<1> isStore;
-    bitset<1> isI_Type;
-    bitset<3> ALUOP;
-    bitset<1> WrtEnable; // re-set to 0 only when J-Type and I-Store ... (may be wrong)
-
-    dumpResults(pc, WrtReg, WrtData, WrtEnable, Address, WriteData, writemem);
     return 0;
 }
